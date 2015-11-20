@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  	<title>[Hakkers]</title>
+  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.css">
+  <link rel="stylesheet" href="css/buttonstyles.css">
+  <link rel="stylesheet" href="css/custom.css">
+  <link rel="stylesheet" href="css/tipped.css">
+  <script src="//code.jquery.com/jquery-1.11.2.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.0.0-alpha/js/umd/tooltip.js"></script>
+  <script src="js/utility.js"></script>
+  <script src="js/tipped.js"></script>
+<script>
+/*
+	$(function() {
+   	 	$( "#transferApp" ).draggable();
+   	 	$( "#statisticsApp" ).draggable();
+   	 	$( "#bankApp" ).draggable();
+   	 	$( "#storeApp" ).draggable();
+ 	});
+*/
+
+//(function() {
+	var playerscore_temp;
+ 	var socket = io.connect('http://62.142.175.54:1337');
+	socket.on('connect', function () {
+		socket.on('loginError', function(data){
+			$("#loginlog").html(data.message)
+		});
+		socket.on('loginSuccess', function(){
+            $("#loginblock").css("display", "none");
+    		$("#gamescreen").css("display", "");
+		});
+
+		// Scoretable
+		socket.on('updateScores', function(data){
+			var scoretable = $("#scoretable");
+			scoretable.empty();
+			var table = $("<table class='table' id='highscores'>");
+			for (var i in data.scores){
+				var license;
+				if (!data.scores[i].licenses.standard){
+					license = "[ No license purchased ]";
+				} else {
+					license = data.scores[i].licenses.standard;
+				}
+				table.append("<tr><td>"+data.scores[i].nickname+"</td><td>"+Math.floor(data.scores[i].score).toLocaleString()+"</td><td>"+license+"</td>");
+			}
+			scoretable.append(table);
+		});
+
+		// Store
+		socket.on('updateSelfStore', function(data){
+			storeInner = $("#storeInner");
+			storeInner.empty();
+			var storeTable = $("<table class='table' id='storeTable'>");
+			for (var i in data.apps){
+				storeTable.append("<tr><td><i class='fa "+data.apps[i].icon+"' id='"+data.apps[i].name+"Info'></i></td><td>"+data.apps[i].name+".exe</td><td>"+data.apps[i].price.toLocaleString()+"</td><td><button class='btn btn-default' style='margin-left: 15px' onclick='buyApp(\""+data.apps[i].name+"\")'>purchase ( )</button></td></tr>");
+			}
+			storeInner.append(storeTable);
+		})
+
+		socket.on('updateSelf', function(data){
+			var ownStats = $("#ownStats");
+			ownStats.empty();
+			var sps = "+<label id='sps'>"+data.income.toFixed(2)+"</label> per second"
+			var scorePoints = "<label id='playerScore'>"+Math.floor(data.score).toLocaleString()+"</label>&nbsp;   " + sps
+
+			var ownName = $("<p id='playerNick'>");
+			ownName.append(data.nickname);
+
+			var multip = data.baseMultiplier + data.bonusMultiplier;
+			var multipStr = "x" + multip.toFixed(2);
+			var multiplier = "<p id='playerMultiplier'>"+multipStr+"</p>"
+
+			ownStats.append(ownName);
+			ownStats.append(scorePoints);
+			ownStats.append(multiplier);
+
+			// Overload bar
+			var overload = data.overload;
+			$("#overloadBar").attr("value", (overload*100))
+
+			// Update the statistics app information
+			statisticsInner = $("#statisticsInner");
+			statisticsInner.empty();
+			var clicks = $("<p>");
+			clicks.append("Clicks: " +data.stats.clicks);
+			var highestMultip = $("<p>");
+			highestMultip.append("Highest multiplier: " + data.stats.highestMultiplier.toFixed(2).toLocaleString());
+			var highestScore = $("<p>");
+			highestScore.append("Highest score: " + Math.floor(data.stats.highestScore).toLocaleString());
+			var totalScore = $("<p>");
+			totalScore.append("Total score: " + Math.floor(data.stats.totalScore).toLocaleString());
+
+			statisticsInner.append(clicks);
+			statisticsInner.append(highestMultip);
+			statisticsInner.append(highestScore);
+			statisticsInner.append(totalScore);
+
+			// Checks which apps to show
+      		$.each(data.purchasedApps, function(key, value) {
+      			 $(".app").each(function(i, app) {
+                	var app = $(app).attr("id");
+					if (key == app) {
+						// Emtpy store logic
+						if (key == "store" && Object.keys(data.apps).length === 0){
+							$("#store").css("display", "none")
+						} else {
+							$("#"+key).fadeIn("slow");
+							//$("#"+key).show("slide", { direction: "left" }, 1000);
+						}	
+					}
+           		});
+      		})
+      		// Checks which apps to hide
+      		$.each(data.apps, function(key, value){
+      			$(".app").each(function(i, app) {
+      				var app = $(app).attr("id");
+      				if (key == app){
+      					$("#"+key).fadeOut("slow");
+      				}
+      			});
+      		})
+
+			// Upgrader
+			$("#upgradeButton").html(" upgrade ( " + formatVersionNumber(data.upgrades["botnet"].level) +" )<br><span class='price' id='upgradePrice'></span>");
+			if (data.score < data.upgrades["botnet"].price){
+				$('#upgradeButton').addClass("ui-state-disabled");
+			} else {
+				$('#upgradeButton').removeClass("ui-state-disabled");
+			}
+			$("#upgradePrice").html("["+data.upgrades["botnet"].price.toLocaleString()+"] crd");
+
+			// Bank / licenses
+			var licenseSlot = $("#licenseSlot");
+			licenseSlot.empty();
+			var licensing = $("<label class='form-control'>");
+			var license;
+			if (!data.licenses.standard){
+				license = "[ --- ]";
+				$('#purchaseLicense').attr("disabled", false).removeClass("ui-state-disabled");
+			} else {
+				license = "[ "+data.licenses.standard+" ]"
+				$('#purchaseLicense').attr("disabled", true).addClass("ui-state-disabled");
+			}
+			licensing.append("License: "+license);
+			licenseSlot.append(licensing);
+			$("#licensePrice").html("[" + data.licenses.price + "] crd");
+
+			// Loanshark
+			if (data.purchasedApps["loanshark"]){
+				playerscore_temp = Math.floor(data.score);
+				$("#availLoan").html(data.purchasedApps["loanshark"].availLoan.toLocaleString());
+
+				if (data.purchasedApps["loanshark"].takenLoan > 0){
+					$("#paybackTimer").html(data.purchasedApps["loanshark"].paybackTime)
+				} else {
+					$("#paybackTimer").html("")
+				}
+			}
+		});
+		
+		socket.on('loanshark', function(data){
+			//$("#loansharkInner").slideUp("fast");
+			//$("#paybackInner").slideDown("fast");
+
+
+			var debt = data.loanshark.takenLoan
+			//$("#takenLoan").html(debt.toLocaleString());
+			//$("#paybackTimer").html(data.loanshark.paybackTime);
+
+			if (playerscore_temp < debt){
+				$('#paybackButton').addClass("ui-state-disabled");
+			} else {
+				$('#paybackButton').removeClass("ui-state-disabled");
+			}
+			
+		})
+		socket.on('lottery', function(data){
+			var timerMinutes = secondsToTime(data.lottery.timer).m;
+			var timerSeconds = secondsToTime(data.lottery.timer).s;
+
+			var jackpot = Math.floor(data.lottery.jackpot*data.lottery.multiplier)
+			
+			$("#lotteryTimer").html(timerMinutes+":"+timerSeconds);
+			$("#jackpot").html(jackpot.toLocaleString());
+			$("#attendees").html(data.lottery.attendees.length);
+
+			var minimumTicketPrice = Math.floor(jackpot*0.1)
+			$("#lotteryAmount").attr("min", minimumTicketPrice);
+
+			if (!$("#lotteryAmount").is(":focus") && !$("#allIn").is(":focus") && !$("#lottery").is(":hover")) {
+			  $("#lotteryAmount").val(minimumTicketPrice);
+			} 
+			
+			if (playerscore_temp < minimumTicketPrice){
+				$('#sendLottery').addClass("ui-state-disabled");
+			} else {
+				$('#sendLottery').removeClass("ui-state-disabled");
+			}
+
+		});
+
+		socket.on('consoleMsg', function(data){
+			var time = new Date();
+			var timestamp = time.getHours() + ":" + time.getMinutes() + ":" + time.getSeconds()			
+			$("#consoleInner").append("<p id='consolemsg'>"+timestamp+"  <b>"+data.msg+"</b></p>");
+		})
+
+	});
+
+	function buyApp(app){
+		socket.emit("purchaseApp", {app: app});
+	}
+	function login(){
+		socket.emit('login', { code: $("#logincode").val() });
+		document.getElementById("theme").volume = 0;
+		document.getElementById("theme").play();
+		
+	}
+	function multiplierClick(){
+		fadeTheme();
+		socket.emit('click');
+	}
+	function purchaseLicense(){
+		flashGreen("purchaseLicense");
+		socket.emit('purchaseLicense');
+	}
+	function sendCurrency(){
+		flashGreen("transferApp");
+		var license = $("#licensecode").val();
+		var amount = $("#donation").val();
+
+		socket.emit('sendCurrency', {
+			license : license,
+			amount : amount
+		});
+
+		$("#donation").val("");
+		$("#licensecode").val("");
+	}
+	function sendPurchaseUpgrade(upgradeType){
+		flashGreen("upgradeButton");
+		socket.emit("purchaseUpgrade", { upgradeType: upgradeType });
+	}
+	function sendToLottery(){
+		var amount = $("#lotteryAmount").val();
+		socket.emit("sendToLottery", {amount: amount});
+		$("#lotteryAmount").val("");
+		flashGreen("lottery");
+	}
+	function loan(){
+		socket.emit("loan");
+	}
+	/*
+	function payback(){
+		socket.emit("payback");
+	}
+	*/
+    function rename(){
+    	var alias = $("#alias").val();
+    	socket.emit("rename", { name: alias })
+    	$("#alias").val("");
+    }
+    function flashGreen(element){
+    	$("#"+element).addClass("flashGreen");
+    	setTimeout(function(){
+    		$("#"+element).removeClass("flashGreen");
+    	}, 100)
+    }
+    function formatVersionNumber(level) {
+        var minor = level % 10;
+        var major = Math.floor(level / 10);
+        return "v." + major + "." + minor;
+    }
+//})();
+</script>
+</head>
+<body>
+
+<audio id="theme" loop>
+  <source src="">
+  Your browser does not support the audio element.
+</audio>
+
+<script>
+
+
+</script>
+	<i id="mute" class="fa fa-volume-up pointer" style="position:absolute" onclick='mute()'></i>
+	<i class="fa fa-info-circle" id="info" style="position:absolute;right:1%" ></i>
+	
+  	<hr class="style17">
+  	<div id="gamescreen" style='display: none'>
+  		<div class="appContainer">
+	  		<div class="app" id="main">
+				<h3><i class="fa fa-angle-double-right"></i>&nbsp;main.exe</h3>
+				<hr>
+				<div id="ownStats"></div>
+				<div id="mainInner">
+					<!--
+					<div class="progress">
+					  <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="70" id='overloadBar'
+					  aria-valuemin="0" aria-valuemax="100" style="width:0%">
+					    <span class="sr-only">70% Complete</span>
+					  </div>
+					</div>
+					-->
+					<progress id='overloadBar' value="0" max="100" class='overloadbar'></progress>
+		  			<section class="flat">
+		  				<button id="hack" onclick='multiplierClick()'> hack ( )</button><br>
+		  				<button onclick="sendPurchaseUpgrade('botnet')" id='upgradeButton'> upgrade</button>
+		 	  		</section>
+	 	  		</div>
+	  		</div>
+			<div class="app" id="store">
+				<h3><i class="fa fa-cart-plus"></i>&nbsp;appstore.exe</h3>
+				<hr>
+				<div id="storeInner">
+				</div>
+			</div>
+			<div class="col-lg-3 app" id="console" style="display:none">
+				<h3><i class="fa fa-list-alt icon" id='consoleInfo'></i>&nbsp;console.exe</h3>
+				<hr>
+				<div id="consoleInner">
+				</div>
+			</div>
+
+				<div class="app" id="lottery" style="display:none">
+	  				<h3><i class="fa fa-ticket icon" id='lotteryInfo'></i>&nbsp;lottery.exe</h3>
+		  			<hr>
+		  			<div id="lotteryInner">
+							<label>Handout timer:</label><p id="lotteryTimer"></p><hr>
+	  					<table style="width: 100%">
+	  						<tr>
+	  							<td style="width: 35%;padding-right: 10px;">Jackpot:</td>
+	  							<td style="width: 65%"><label class="form-control" id="jackpot"></label></td>
+	  						</tr>
+	  						<tr>
+	  							<td>Attendees:</td>
+	  							<td><label class="form-control" id="attendees"></label></td>
+	  						</tr>
+	  					</table>
+	  					<hr>
+  						<input type="number" id='lotteryAmount' class="anyinput" placeholder="[Bet amount]" min='3000'>			
+	  					<section class="flat">
+	  						<button onclick='sendToLottery()' id='sendLottery'> buyTicket ( )</button>
+	  					</section>
+		  			</div>
+	  			</div>		
+
+	  		<div class="app" id="renamer" style="display:none"> 
+  				<h3><i class="fa fa-user icon" id='renamerInfo'></i>renamer.exe</h3>
+	  			<hr>
+  				<input id="alias" type="text" class="form-control" placeholder="new alias" style='text-align:center'>
+  				<section class="flat">
+  					<button id="rename" onclick='rename()'>initRename ()</button>
+  				</section>	  		
+	  		</div>
+	  	</div>
+		<div id="appScreen" class="appContainer">
+		  		<div class="app" id="scoretracker" style="display:none">
+		  			<h3><i class="fa fa-table icon" id='scoretrackerInfo'></i>&nbsp;scoretracker.exe</h3>
+		  			<hr>
+	  				<div id="scoretable">
+					</div>
+	  			</div>
+		  		<div class="app" id="currtransfer" style="display:none">	  			
+	  				<h3><i class="fa fa-database icon" id='currtransferInfo'></i>currtransfer.exe</h3>
+	  				<hr>
+	  				<div id="transferInner">
+				  		<input type="text" id='licensecode' class="anyinput" placeholder="[License code]"><br>
+	  					<input type="number" id='donation' class="anyinput" placeholder="[Transfer amount]">			 	
+					  	<section class="flat">
+					  		<button onclick='sendCurrency()' id='sendCurrency'> initTransfer ( )</button>
+				  		</section>
+				  	</div> 		
+		  		</div>
+		  		<div class="app" id="bankconn" style="display:none">
+	  				<h3><i class="fa fa-cloud-upload icon" id='bankconnInfo'></i>&nbsp;bankconn.exe</h3>
+		  			<hr>
+		  			<div id="bankInner">
+		  				<div id='licenseSlot'>
+		  				</div>
+		  				<section class='flat'>
+		  					<button onclick='purchaseLicense()' id='purchaseLicense'> buyLicense ( ) <br><span id="licensePrice" class='price'> </span></button>
+		  				</section>
+		  			</div>
+		  		</div>
+		  		<div class="app" id="loanshark" style="display:none">
+  				<h3><i class="fa fa-credit-card icon" id='loansharkInfo'></i>loanshark.exe</h3>
+	  			<hr>	
+	  			<div id="loansharkInner">
+  					<table style="width: 100%">
+  						<tr>
+  							<td style="width: 35%;padding-right: 10px;">Available loan:</td>
+  							<td style="width: 65%"><label class="form-control" id="availLoan"></label></td>
+  						</tr>
+  						<tr>
+  							<td style="width: 35%;padding-right: 10px;">Payback timer:</td>
+  							<td style="width: 35%;padding-right: 10px;"><label class="form-control" id="paybackTimer"></label></td>
+  						</tr>
+  						<!--
+							<tr>
+  							<td style="width: 35%;padding-right: 10px;">Payback:</td>
+  							<td style="width: 65%"><label class="form-control" id="paybackAm"></label></td>
+  						</tr>
+  						-->
+  					</table>
+	  				<section class="flat">
+	  					<button onclick='loan()' id="loanButton">initLoan ( )</button>
+	  				</section>
+	  			</div>
+	  			<!--
+	  			<div id="paybackInner" style="display:none">
+  					<table style="width: 100%">
+  						<tr>
+  							<td style="width: 35%;padding-right: 10px;">Debt:</td>
+  							<td style="width: 65%"><label class="form-control" id="takenLoan"></label></td>
+  						</tr>
+							<tr>
+  							<td style="width: 35%;padding-right: 10px;">Payback in:</td>
+  							<td style="width: 65%"><label class="form-control" id="paybackTimer"></label></td>
+  						</tr>
+  					</table>
+	  				<section class="flat">
+	  					<button onclick='payback()' id="paybackButton">initPayback ( )</button>
+	  				</section>
+	  			</div>
+	  			-->
+	  		</div>
+		  	
+		  		<div class="app" id="statistics" style="display:none">
+	  				<h3><i class="fa fa-bar-chart icon" id='statisticsInfo'></i>statistics.exe</h3>
+		  			<hr>	
+		  			<div id="statisticsInner">
+		  			</div>
+		  		</div>
+			</div>
+  		</div>
+  		<div class="appContainer">	
+  		</div>
+  	<div id="loginblock">
+  		<div class="col-lg-4" style="display: inline-block"></div>
+  		<div class="col-lg-4">
+	  		<section class="flat">
+		  		<input type="text" id="logincode" class="anyinput" placeholder="[Enter login code]">
+		  		<button onclick="login()" id='login'> login ( <i class="fa fa-sign-in"></i> )</button>
+		  		<p id="loginlog"></p>
+		  	</section>
+	 	 </div>
+	 	 <div class="col-lg-4" style="display: inline-block"></div>
+    </div>
+  </body>
+</html>
+
+
+<script>
+// Keylisteners
+   $('#logincode').keypress(function(e){
+      if(e.which === 13)
+         $('#login').click();
+   });
+   $('#donation').keypress(function(e){
+      if(e.which === 13)
+         $('#sendCurrency').click();
+   });
+   $('#licensecode').keypress(function(e){
+      if(e.which === 13)
+         $('#sendCurrency').click();
+   });
+   $('#alias').keypress(function(e){
+      if(e.which === 13)
+         $('#rename').click();
+   });
+    $('#lotteryAmount').keypress(function(e){
+      if(e.which === 13)
+         $('#sendLottery').click();
+   });
+$('body').keydown(function(e){
+   if(e.keyCode == 32){
+       // user has pressed backspace
+       $("#hack").click();
+   }
+});
+</script>

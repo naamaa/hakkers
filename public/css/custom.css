@@ -1,0 +1,181 @@
+body {
+	padding: 15px;
+    background-color: #222;
+    color: white;
+    font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+    font-weight: 300;
+
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+.overloadbar{
+	width: 100%;
+	margin-bottom: 0px;
+}
+.appContainer {
+  /* We first create a flex layout context */
+  display: flex;
+  
+  /* Then we define the flow direction and if we allow the items to wrap 
+   * Remember this is the same as:
+   * flex-direction: row;
+   * flex-wrap: wrap;
+   */
+  flex-flow: row wrap;
+  
+  /* Then we define how is distributed the remaining space */
+}
+.app {	
+	margin: 1px;
+	display: inline-block;
+	text-align: center;
+	border: 1px solid black;
+	padding: 5px;
+	padding-bottom: 2px;
+	background: gray;
+}
+#mainScreen{
+  /* We first create a flex layout context */
+  display: flex;
+  
+  /* Then we define the flow direction and if we allow the items to wrap 
+   * Remember this is the same as:
+   * flex-direction: row;
+   * flex-wrap: wrap;
+   */
+  flex-flow: row wrap;
+  
+  /* Then we define how is distributed the remaining space */
+  justify-content: space-around;
+}
+#main{
+	min-width: 400px;
+}
+#console{
+	overflow: auto;
+	margin-right: 0px;
+	max-height: 412px;
+}
+#consoleInner{
+	text-align: left;
+	padding-bottom: 5px;
+	padding-left: 3px;
+}
+#store{
+	overflow: auto;
+	overflow-x: hidden;
+}
+#loginlog{
+	margin-top: 15px;
+	background: transparent;
+	color: red;
+	border: none;
+	text-align: center;
+}
+#scoretracker{
+	overflow: auto;
+	min-width: 450px ;
+	max-width: 450px;
+	max-height: 300px;
+	overflow: auto;
+}
+#scoretable{
+	overflow: auto;
+}
+
+.pointer{
+	cursor: hand;
+	cursor: pointer;
+}
+
+#gamescreen{
+	padding-top: 10px;
+	padding-left: 25px;
+}
+#playerNick{
+color: #555;
+font-size: 30px;
+margin-bottom: 20px;
+}
+#playerScore {
+font-size: 40px;
+}
+#playerMultiplier {
+    font-size: 20px;
+}
+.price{
+	color: orange;
+}
+#statisticsInner{
+	text-align: left;
+	font-size: 12pt;
+}
+.appHeader{
+	cursor: pointer;
+	cursor: hand;
+}
+.icon{
+	margin: 5px;
+	padding: 3px;
+	border: 2px solid white;
+}
+
+.app h3{
+	text-align: center;
+	margin-top: 0;
+	margin-bottom: 0;
+	padding: 0;
+}
+.anyinput {
+  color: orange;
+  display: block;
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  font-size: 18px;
+  appearance: none;
+  box-shadow: none;
+  border-radius: none;
+}
+.anyinput:focus {
+  outline: none;
+}
+#login{
+	margin-top: 5px;
+	width: 100%;
+}
+#loginblock{
+	margin-top: 8%;
+}
+#donation{
+	color: orange;
+}
+#licensecode{
+	margin-top: 5px;
+}
+hr.style17 {
+	border-top: 1px solid #8c8b8b;
+	text-align: center;
+}
+hr.style17:after {
+	content: '[HAKDERS]';
+	display: inline-block;
+	position: relative;
+	top: -14px;
+	padding: 0 10px;
+	background: #f0f0f0;
+	color: black;
+	font-size: 18px;
+}
+.flashGreen{
+border: 2px solid #003300;
+-webkit-box-shadow: 0px 0px 47px -12px rgba(19,64,2,1);
+-moz-box-shadow: 0px 0px 47px -12px rgba(19,64,2,1);
+box-shadow: 0px 0px 47px -12px rgba(19,64,2,1);
+}
+
