@@ -27,7 +27,7 @@
 
 //(function() {
 	var playerscore_temp;
- 	var socket = io.connect('http://62.142.175.54:1337');
+ 	var socket = io.connect('http://localhost:1337');
 	socket.on('connect', function () {
 		socket.on('loginError', function(data){
 			$("#loginlog").html(data.message)
